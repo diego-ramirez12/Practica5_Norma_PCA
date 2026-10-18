@@ -1,0 +1,1 @@
+# Practica5_Norma_PCA
