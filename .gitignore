@@ -1,0 +1,13 @@
+# Dataset original
+/proyecto/data/data-raw/*.txt
+
+# Entorno virtual
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.pyc
+
+# Jupyter
+.ipynb_checkpoints/
