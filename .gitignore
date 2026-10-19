@@ -1,6 +1,9 @@
 # Dataset original
 /proyecto/data/data-raw/*.txt
 
+# Dataset limpio generado: se regenera con preprocessing.py
+/proyecto/data/data-processed/household_power_consumption_clean.csv
+
 # Entorno virtual
 .venv/
 venv/
