@@ -197,3 +197,78 @@ El rango temporal se conserva: desde `2006-12-16 17:24:00` hasta
 `2010-11-26 21:02:00`. El resultado mantiene el orden cronológico, los 71 huecos
 temporales y las unidades originales. La reducción de nueve a ocho columnas se
 debe a la sustitución de `Date` y `Time` por `Datetime`.
+
+## Normalización de variables numéricas
+
+Se analizaron las siete variables cuantitativas del dataset limpio, considerando sus escalas, unidades de medición y presencia de valores atípicos mediante el rango intercuartílico (IQR).
+
+Los resultados mostraron diferencias importantes entre las escalas de las variables, así como mediciones extremas. Destaca `Sub_metering_1`, cuyo IQR es igual a cero debido a la concentración de registros sin consumo. Los valores extremos se conservaron, ya que pueden representar eventos reales de consumo eléctrico y no necesariamente errores.
+
+### Técnica seleccionada
+
+Se eligió la **estandarización Z-score** en lugar de Min-Max, debido a que las variables presentan diferentes escalas y valores extremos que podrían comprimir gran parte de las observaciones al utilizar mínimos y máximos.
+
+Z-score permite transformar las variables para obtener una media de cero y desviación estándar de uno en el conjunto de entrenamiento, facilitando su comparación y posterior utilización en PCA. Se considera que esta técnica también es sensible a valores atípicos.
+
+### Prevención de fuga de información temporal
+
+Para evitar utilizar información futura durante la normalización, se estableció el **1 de enero de 2010 como fecha de corte**, dividiendo los registros cronológicamente:
+
+| Conjunto | Periodo | Registros |
+|---|---|---:|
+| Entrenamiento | Diciembre de 2006 a diciembre de 2009 | 1,591,886 |
+| Prueba | Enero a noviembre de 2010 | 457,394 |
+
+La media y desviación estándar de cada variable se calcularon exclusivamente con el conjunto de entrenamiento mediante `StandardScaler.fit()`. Posteriormente, ambos conjuntos se transformaron utilizando los mismos parámetros con `transform()`.
+
+Esta división temporal es una decisión metodológica del equipo y no una fecha exigida por el enunciado.
+
+### Resultados de la normalización
+
+Se verificó que las siete variables estandarizadas presentan medias aproximadamente iguales a cero y desviaciones estándar iguales a uno en el conjunto de entrenamiento.
+
+Las medias del conjunto de prueba pueden diferir de cero, ya que se utilizan los parámetros obtenidos del entrenamiento sin recalcularlos.
+
+El procedimiento se encuentra documentado en `notebooks/normalizacion.ipynb` y genera:
+
+- `household_power_consumption_zscore.csv`: dataset con las siete variables estandarizadas y su columna temporal.
+- `zscore_parametros.csv`: medias, desviaciones estándar, fecha de corte y cantidad de registros utilizados.
+
+## Reducción de dimensionalidad mediante correlación de Pearson
+
+Se calculó la matriz de correlación de Pearson entre las siete variables numéricas utilizando únicamente los registros anteriores al 1 de enero de 2010. Esto evita incorporar información del conjunto de prueba en las decisiones de selección de variables.
+
+Se generó una matriz de correlación de 7 × 7 y un mapa de calor para identificar relaciones lineales y posibles redundancias.
+
+### Resultados principales
+
+| Variables | Correlación aproximada |
+|---|---:|
+| `Global_active_power` y `Global_intensity` | 0.999 |
+| `Global_active_power` y `Sub_metering_3` | 0.629 |
+| `Voltage` y `Global_intensity` | -0.409 |
+
+La correlación más alta corresponde a `Global_active_power` y `Global_intensity`, indicando una relación lineal positiva casi perfecta y una posible redundancia entre ambas variables.
+
+### Criterio de selección
+
+Se estableció un umbral de **correlación absoluta mayor o igual a 0.90**, considerando relaciones positivas y negativas. Este criterio permite identificar variables altamente relacionadas sin descartar aquellas que presentan correlaciones moderadas.
+
+Con base en los resultados, se decidió:
+
+- **Conservar:** `Global_active_power`, `Global_reactive_power`, `Voltage`, `Sub_metering_1`, `Sub_metering_2` y `Sub_metering_3`.
+- **Descartar:** `Global_intensity`, debido a su alta correlación con `Global_active_power`, variable que representa directamente la potencia activa consumida.
+
+De esta manera, se propone reducir de siete a **seis variables numéricas**, conservando las mediciones relevantes para el análisis posterior.
+
+### Archivos y continuidad del proyecto
+
+El análisis completo se encuentra en `notebooks/pearson.ipynb`. Se generan los siguientes archivos:
+
+| Archivo | Contenido |
+|---|---|
+| `matriz_pearson_entrenamiento.csv` | Matriz de correlaciones entre las siete variables. |
+
+El notebook permite generar opcionalmente un CSV con las seis variables seleccionadas.
+
+**Para la siguiente etapa de PCA**, se dispone de las variables estandarizadas, la selección realizada mediante Pearson y la división temporal utilizada. El dataset original y el dataset limpio permanecen sin modificaciones.
