@@ -263,7 +263,7 @@ De esta manera, se propone reducir de siete a **seis variables numéricas**, con
 
 ### Archivos y continuidad del proyecto
 
-El análisis completo se encuentra en `notebooks/pearson.ipynb`. Se generan los siguientes archivos:
+El analisis completo se encuentra en `notebooks/pearson.ipynb`. Se generan los siguientes archivos:
 
 | Archivo | Contenido |
 |---|---|
@@ -272,3 +272,124 @@ El análisis completo se encuentra en `notebooks/pearson.ipynb`. Se generan los 
 El notebook permite generar opcionalmente un CSV con las seis variables seleccionadas.
 
 **Para la siguiente etapa de PCA**, se dispone de las variables estandarizadas, la selección realizada mediante Pearson y la división temporal utilizada. El dataset original y el dataset limpio permanecen sin modificaciones.
+
+
+## Reducción de dimensionalidad mediante PCA
+
+Se aplico PCA con el objetivo de reducir la dimensionalidad del dataset, conservando la mayor cantidad posible de varianza.
+
+Para realizar el análisis se utilizaron las seis variables numéricas conservadas después de aplicar la correlación de Pearson, las cuales ya habían sido estandarizadas mediante Z-score.
+
+### Aplicación de PCA
+
+Antes de aplicar PCA, se verificó que las variables del conjunto de entrenamiento tuvieran medias cercanas a cero y desviaciones estándar cercanas a uno.
+
+Se utilizo la implementación PCA de scikit-learn, ajustandola unicamente con los registros anteriores al 1 de enero de 2010.
+
+Esto permitió calcular los componentes principales sin utilizar información del conjunto de prueba.
+
+Inicialmente se calcularon seis componentes principales, uno por cada variable numerica utilizada.
+
+### Varianza explicada y selección de componentes
+
+Se calculo la varianza explicada individual y acumulada de cada componente principal.
+
+Se establecio como criterio conservar al menos el 95% de la varianza total del conjunto de entrenamiento.
+
+Los resultados fueron:
+
+| Componente | Varianza explicada | Varianza acumulada |
+|---|---:|---:|
+| PC1 | 38.70% | 38.70% |
+| PC2 | 16.47% | 55.16% |
+| PC3 | 15.59% | 70.75% |
+| PC4 | 13.87% | 84.63% |
+| PC5 | 12.61% | 97.23% |
+| PC6 | 2.77% | 100% |
+
+Se decidio conservar las primeras cinco componentes principales, ya que juntas explican el 97.23% de la varianza, superando el criterio establecido del 95%.
+
+La sexta componente fue descartada porque solamente explica el 2.77% de la varianza total.
+
+De esta manera, se consiguió representar las seis variables numericas mediante cinco componentes principales.
+
+### Grafica de varianza explicada
+
+Se generó una grafica (scree plot) que muestra la varianza explicada por cada componente y la varianza acumulada.
+
+![Varianza explicada por PCA](notebooks/figures/pca_scree_plot.png)
+
+La gráfica permite observar que con cinco componentes se supera el 95% de la varianza acumulada.
+
+### Interpretación de los loadings
+
+Se analizaron los loadings para identificar que variables originales tienen mayor relación con cada componente principal.
+
+Los resultados principales fueron:
+
+- **PC1:** Se relaciona principalmente con Global_active_power, Sub_metering_3 y Voltage. Representa un patrón asociado con la potencia activa y las submediciones, en contraste con el voltaje.
+
+- **PC2:** Se relaciona principalmente con Global_reactive_power, Sub_metering_3 y Sub_metering_2. Refleja diferencias entre estas mediciones.
+
+- **PC3:** Destacan Sub_metering_1 y Sub_metering_2, presentando relaciones en sentidos opuestos.
+
+- **PC4:** Se relaciona principalmente con Global_reactive_power, Sub_metering_1 y Sub_metering_2.
+
+- **PC5:** Está asociada principalmente con Voltage, que presenta el loading de mayor magnitud en esta componente.
+
+### Proyección en dos dimensiones
+
+Se realizo una proyección de los datos utilizando las dos primeras componentes principales (PC1 y PC2).
+
+Para facilitar la visualización, se utilizo una muestra de 10,000 registros, diferenciando los datos de entrenamiento y prueba mediante colores.
+
+![Proyección PCA en 2D](notebooks/figures/pca_proyeccion_2d.png)
+
+En la gráfica se observa una concentración importante de registros en una misma región, así como algunos puntos alejados de la concentración principal.
+
+Los datos de entrenamiento y prueba presentan una superposición considerable y no se observan grupos claramente separados.
+
+Las primeras dos componentes explican conjuntamente el 55.16% de la varianza, por lo que la grafica muestra solamente una parte de la variabilidad total del dataset.
+
+### Dataset final
+
+Despues de seleccionar las cinco componentes principales, se incorporaron al dataset procesado, conservando también las seis variables numericas estandarizadas.
+
+El dataset final contiene:
+
+- 2,049,280 registros.
+- 12 columnas.
+- 6 variables numéricas normalizadas.
+- 5 componentes principales (PC1 a PC5).
+- La columna temporal Datetime.
+- 0 valores faltantes.
+
+La variable Global_intensity fue descartada conforme a la decisión tomada en el analisis de correlación de Pearson.
+
+El archivo final se guardó en:
+
+`data/data-processed/household_power_consumption_final.csv`
+
+Este dataset conserva las variables originales seleccionadas y las componentes principales, permitiendo utilizar estas últimas como una representación de menor dimensionalidad en futuros modelos de aprendizaje automático.
+
+### Ejecución de PCA
+
+Todo el procedimiento de PCA se encuentra implementado en:
+
+`notebooks/pca.ipynb`
+
+Para ejecutarlo, primero deben haberse generado los datos normalizados mediante `normalizacion.ipynb`.
+
+Despues, se abre `pca.ipynb` en Jupyter o VS Code y se ejecutan las celdas en orden.
+
+El notebook genera los siguientes archivos:
+
+| Archivo | Descripción |
+|---|---|
+| household_power_consumption_final.csv | Dataset final con las componentes principales |
+| pca_varianza_explicada.csv | Resultados de la varianza explicada y acumulada |
+| pca_loadings.csv | Loadings de las componentes principales |
+| pca_scree_plot.png | Grafica de varianza explicada |
+| pca_proyeccion_2d.png | Proyección de los datos en dos dimensiones |
+
+Los archivos CSV se guardan en `data/data-processed/` y las graficas en `notebooks/figures/`.
